@@ -17,6 +17,20 @@ from utils.validators import validate_company_data
 
 
 def render_deal_flow():
+    # --- Company Search (hero section) ---
+    from services.company_lookup import is_lookup_available
+    if is_lookup_available():
+        st.subheader("Find & Import Companies")
+        _render_company_search()
+        st.markdown("---")
+    else:
+        st.info(
+            "**Find & Import Companies** — Configure an `OPENAI_API_KEY` or "
+            "`ANTHROPIC_API_KEY` in `.streamlit/secrets.toml` or your environment "
+            "to enable AI-powered company search."
+        )
+        st.markdown("---")
+
     companies = get_companies_with_scores()
 
     # --- Sidebar filters ---
@@ -111,11 +125,8 @@ def render_deal_flow():
 
     st.markdown("---")
 
-    # --- Company Search / Add Company / CSV Import ---
-    tab_search, tab_add, tab_csv = st.tabs(["Company Search", "Add Company", "CSV Import"])
-
-    with tab_search:
-        _render_company_search()
+    # --- Add Company / CSV Import ---
+    tab_add, tab_csv = st.tabs(["Add Company", "CSV Import"])
 
     with tab_add:
         _render_add_company_form()
@@ -206,16 +217,8 @@ def _render_csv_import():
 
 
 def _render_company_search():
-    from services.company_lookup import is_lookup_available, search_companies
+    from services.company_lookup import search_companies
 
-    if not is_lookup_available():
-        st.warning(
-            "No AI API key configured. Add an `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` to your "
-            "`.streamlit/secrets.toml` or environment variables to enable company search."
-        )
-        return
-
-    st.subheader("Search Companies")
     query = st.text_input("Company name", key="cb_search_query", placeholder="e.g. Datadog")
 
     if query:
