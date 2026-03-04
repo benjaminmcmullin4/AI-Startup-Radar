@@ -23,7 +23,7 @@ def _call_llm(system: str, user: str) -> Optional[str]:
             import anthropic
             client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
             resp = client.messages.create(
-                model="claude-sonnet-4-5-20241022",
+                model="claude-sonnet-4-20250514",
                 max_tokens=1500,
                 system=system,
                 messages=[{"role": "user", "content": user}],
