@@ -1,4 +1,4 @@
-"""Email-based one-time code authentication for Mercato Traverse Radar."""
+"""Email-based one-time code authentication for Growth Equity Radar."""
 
 import random
 import string
@@ -33,24 +33,27 @@ def send_otp_email(to_email: str, otp: str) -> bool:
 
     try:
         resend.api_key = api_key
-        from_email = st.secrets.get("FROM_EMAIL", "onboarding@resend.dev")
+        try:
+            from_email = st.secrets.get("FROM_EMAIL", "onboarding@resend.dev")
+        except Exception:
+            from_email = "onboarding@resend.dev"
 
         resend.Emails.send({
             "from": from_email,
             "to": [to_email],
-            "subject": "Mercato Traverse Radar — Access Code",
+            "subject": "Growth Equity Radar — Access Code",
             "html": f"""
         <html>
         <body style="font-family: -apple-system, sans-serif; background: #f8f9fa; padding: 40px;">
             <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                <h2 style="color: #1a1a2e; margin-bottom: 8px;">Mercato Traverse Radar</h2>
+                <h2 style="color: #1a1a2e; margin-bottom: 8px;">Growth Equity Radar</h2>
                 <p style="color: #6b7280; margin-bottom: 24px;">Your one-time access code:</p>
                 <div style="background: #1a1a2e; color: white; font-size: 32px; font-weight: 700; letter-spacing: 8px; text-align: center; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
                     {otp}
                 </div>
                 <p style="color: #6b7280; font-size: 14px;">This code expires in 10 minutes. Do not share it.</p>
                 <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-                <p style="color: #9ca3af; font-size: 12px;">Mercato Partners &mdash; Building Better</p>
+                <p style="color: #9ca3af; font-size: 12px;">Growth Equity Radar</p>
             </div>
         </body>
         </html>
@@ -91,7 +94,7 @@ def render_auth_gate() -> bool:
 
     st.markdown("""
     <div class="auth-header">
-        <h1>Mercato Traverse Radar</h1>
+        <h1>Growth Equity Radar</h1>
         <p>Growth Equity Deal Sourcing & Screening</p>
     </div>
     """, unsafe_allow_html=True)
@@ -102,7 +105,7 @@ def render_auth_gate() -> bool:
         if not st.session_state.get("otp_sent"):
             # Step 1: Email input
             st.markdown("##### Enter your email to receive an access code")
-            email = st.text_input("Email address", placeholder="analyst@mercatopartners.com", label_visibility="collapsed")
+            email = st.text_input("Email address", placeholder="analyst@example.com", label_visibility="collapsed")
 
             if st.button("Send Access Code", type="primary", use_container_width=True):
                 if not email or "@" not in email:
@@ -168,7 +171,7 @@ def render_auth_gate() -> bool:
     st.markdown("---")
     st.markdown(
         '<p style="text-align:center;color:#4b5563;font-size:0.8em;">'
-        'Mercato Partners &mdash; Building Better &mdash; Since 2007</p>',
+        'Growth Equity Radar &mdash; Deal Sourcing & Screening</p>',
         unsafe_allow_html=True,
     )
     return False

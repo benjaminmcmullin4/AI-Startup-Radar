@@ -1,6 +1,4 @@
-"""Mercato Traverse Radar — Growth Equity Deal Sourcing & Screening
-Internal tool for Mercato Partners' Traverse Fund.
-"""
+"""Growth Equity Radar — Deal Sourcing & Screening."""
 
 import streamlit as st
 import sys
@@ -16,7 +14,7 @@ from services.scoring_engine import score_all_companies
 from services.auth import render_auth_gate
 
 st.set_page_config(
-    page_title="Mercato Traverse Radar",
+    page_title="Growth Equity Radar",
     page_icon="◆",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -37,8 +35,8 @@ if "initialized" not in st.session_state:
 # --- Header ---
 col_title, col_user = st.columns([5, 1])
 with col_title:
-    st.title("◆ Traverse Radar")
-    st.caption("Mercato Partners — Growth Equity Deal Sourcing & Screening")
+    st.title("◆ Growth Equity Radar")
+    st.caption("Deal Sourcing & Screening")
 with col_user:
     user_email = st.session_state.get("user_email", "")
     if user_email:

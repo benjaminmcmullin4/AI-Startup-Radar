@@ -40,7 +40,7 @@ def generate_memo_template(company: dict, score: dict = None) -> str:
 
     memo = f"""# Investment Memo: {name}
 **Generated:** {datetime.now().strftime('%B %d, %Y')}
-**Prepared by:** Mercato Partners — Traverse Fund (Auto-Generated)
+**Prepared by:** Growth Equity Radar (Auto-Generated)
 
 ---
 
@@ -155,7 +155,7 @@ def generate_memo_ai(company: dict, score: dict = None) -> str:
         if k not in ("ai_memo", "ai_summary", "created_at", "updated_at")
     }, default=str)
 
-    prompt = f"""You are a senior growth equity analyst at Mercato Partners (Traverse Fund) writing an investment memo for IC review. Mercato focuses on growth-stage technology companies in underserved, non-coastal geographies with strong organic growth (40-200% YoY), proven unit economics, and category-leading potential.
+    prompt = f"""You are a senior growth equity analyst writing an investment memo for IC review. You focus on growth-stage technology companies with strong organic growth (40-200% YoY), proven unit economics, and category-leading potential.
 
 COMPANY DATA: {company_context}
 
@@ -167,7 +167,7 @@ Write a professional investment memo with these sections:
 3. Team & Organization
 4. Funding & Capitalization
 5. Investment Considerations (strengths, risks, diligence questions)
-6. Traverse Fit Assessment (how this aligns with Mercato's growth equity thesis)
+6. Thesis Fit Assessment (how this aligns with the growth equity thesis)
 7. Recommendation (Strong Fit / Good Fit / Monitor / Pass with reasoning)
 
 Use specific numbers from the data. Be direct and analytical."""

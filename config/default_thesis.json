@@ -1,6 +1,6 @@
 {
-  "name": "Traverse Growth Equity",
-  "description": "Mercato Partners Traverse Fund thesis: growth-stage technology companies with $10M+ ARR, 40-200% organic growth, strong unit economics, in underserved non-coastal geographies. Focus on Series A-D companies that are category leaders or emerging disruptors in software, fintech, healthtech, and data infrastructure.",
+  "name": "Default Growth Equity",
+  "description": "Growth equity thesis: growth-stage technology companies with $10M+ ARR, 40-200% organic growth, strong unit economics. Focus on Series A-D companies that are category leaders or emerging disruptors in software, fintech, healthtech, and data infrastructure.",
   "weight_team": 0.25,
   "weight_financial": 0.25,
   "weight_market": 0.20,
