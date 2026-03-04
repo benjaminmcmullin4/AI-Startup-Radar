@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.db
+.env
+.streamlit/secrets.toml
+.claude/
+plan.md
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,64 @@
+{
+  "sectors": [
+    {
+      "name": "Enterprise SaaS",
+      "sub_sectors": ["Horizontal SaaS", "Vertical SaaS", "Dev Tools", "Security", "Data Infrastructure", "AI/ML Platform"],
+      "attractiveness": 8
+    },
+    {
+      "name": "Fintech",
+      "sub_sectors": ["Payments", "Lending", "Insurance", "Banking Infrastructure", "Wealth Management", "Crypto/Web3"],
+      "attractiveness": 7
+    },
+    {
+      "name": "Healthcare IT",
+      "sub_sectors": ["Clinical Software", "Revenue Cycle", "Telehealth", "Digital Therapeutics", "Health Data"],
+      "attractiveness": 8
+    },
+    {
+      "name": "Cybersecurity",
+      "sub_sectors": ["Identity & Access", "Cloud Security", "Endpoint", "AppSec", "GRC", "Threat Intelligence"],
+      "attractiveness": 9
+    },
+    {
+      "name": "Data & Analytics",
+      "sub_sectors": ["Business Intelligence", "Data Engineering", "Data Governance", "Customer Analytics", "AI Analytics"],
+      "attractiveness": 8
+    },
+    {
+      "name": "DevOps & Infrastructure",
+      "sub_sectors": ["CI/CD", "Observability", "Cloud Management", "Container Orchestration", "IaC"],
+      "attractiveness": 7
+    },
+    {
+      "name": "HR Tech",
+      "sub_sectors": ["Talent Acquisition", "Workforce Management", "Payroll", "Learning & Development", "Employee Experience"],
+      "attractiveness": 6
+    },
+    {
+      "name": "Supply Chain & Logistics",
+      "sub_sectors": ["Warehouse Management", "Fleet Management", "Procurement", "Visibility & Tracking"],
+      "attractiveness": 7
+    },
+    {
+      "name": "MarTech & AdTech",
+      "sub_sectors": ["CRM", "Marketing Automation", "Content Management", "Customer Data Platform", "Ad Optimization"],
+      "attractiveness": 6
+    },
+    {
+      "name": "Climate & Energy Tech",
+      "sub_sectors": ["Carbon Management", "Energy Management", "EV Infrastructure", "Clean Energy Software"],
+      "attractiveness": 7
+    },
+    {
+      "name": "Legal Tech",
+      "sub_sectors": ["Contract Management", "E-Discovery", "Compliance", "Practice Management"],
+      "attractiveness": 6
+    },
+    {
+      "name": "PropTech",
+      "sub_sectors": ["Property Management", "Construction Tech", "Real Estate Analytics", "Smart Building"],
+      "attractiveness": 5
+    }
+  ]
+}

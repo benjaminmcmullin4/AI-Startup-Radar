@@ -1,0 +1,2 @@
+name,domain,description,sector,sub_sector,hq_location,founded_year,employee_count,employee_growth_pct,arr_millions,revenue_growth_pct,gross_margin_pct,net_retention_pct,total_raised_millions,last_round_type,last_round_amount_millions,last_round_date,last_valuation_millions,key_investors,pipeline_stage,source
+Example Corp,example.com,Enterprise workflow automation platform,Enterprise SaaS,Horizontal SaaS,San Francisco,2018,250,35,18.5,65,72,118,45,Series B,25,2025-06-15,180,"[""Acme Ventures"",""Growth Partners""]",new,csv_import
