@@ -50,11 +50,26 @@ with col_user:
 
 # --- Demo mode banner / AI lookup status ---
 if is_demo_mode():
-    st.info("◆ **Demo Mode** — Showing sample portfolio pipeline with rule-based scoring. Configure API keys in Streamlit secrets for AI-powered enrichment.", icon="ℹ️")
+    st.info("◆ **Demo Mode** — Showing sample pipeline. Configure API keys for AI-powered features.", icon="ℹ️")
 else:
     from services.company_lookup import is_lookup_available
     if is_lookup_available():
-        st.success("◆ **AI company lookup available** — Search and import real startup data from the Deal Flow tab.", icon="✅")
+        # Check if demo data still lingers
+        from db.database import get_connection
+        _conn = get_connection()
+        _demo_count = _conn.execute("SELECT COUNT(*) FROM companies WHERE source = 'demo_seed'").fetchone()[0]
+        _conn.close()
+        if _demo_count > 0:
+            col_msg, col_btn = st.columns([4, 1])
+            with col_msg:
+                st.success(f"◆ **AI company lookup active** — You have {_demo_count} demo companies. Clear them to start fresh.", icon="✅")
+            with col_btn:
+                if st.button("Clear Demo Data"):
+                    from db.database import delete_companies_by_source
+                    delete_companies_by_source("demo_seed")
+                    st.rerun()
+        else:
+            st.success("◆ **AI company lookup available** — Search and import real startup data from Deal Flow.", icon="✅")
 
 
 # --- Tab routing ---

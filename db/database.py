@@ -74,6 +74,25 @@ def get_company_count() -> int:
     return count
 
 
+def delete_companies_by_source(source: str) -> int:
+    """Delete all companies (and their scores, notes, tags, news, activity) with a given source."""
+    conn = get_connection()
+    company_ids = [r[0] for r in conn.execute(
+        "SELECT id FROM companies WHERE source = ?", (source,)
+    ).fetchall()]
+    if company_ids:
+        placeholders = ",".join("?" * len(company_ids))
+        conn.execute(f"DELETE FROM scores WHERE company_id IN ({placeholders})", company_ids)
+        conn.execute(f"DELETE FROM notes WHERE company_id IN ({placeholders})", company_ids)
+        conn.execute(f"DELETE FROM company_tags WHERE company_id IN ({placeholders})", company_ids)
+        conn.execute(f"DELETE FROM news_items WHERE company_id IN ({placeholders})", company_ids)
+        conn.execute(f"DELETE FROM activity_log WHERE company_id IN ({placeholders})", company_ids)
+        conn.execute(f"DELETE FROM companies WHERE source = ?", (source,))
+    conn.commit()
+    conn.close()
+    return len(company_ids)
+
+
 # --- Scores CRUD ---
 
 def upsert_score(score_data: dict):

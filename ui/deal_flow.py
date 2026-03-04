@@ -111,17 +111,17 @@ def render_deal_flow():
 
     st.markdown("---")
 
-    # --- Add Company / CSV Import / Company Search ---
-    tab_add, tab_csv, tab_cb = st.tabs(["Add Company", "CSV Import", "Company Search"])
+    # --- Company Search / Add Company / CSV Import ---
+    tab_search, tab_add, tab_csv = st.tabs(["Company Search", "Add Company", "CSV Import"])
+
+    with tab_search:
+        _render_company_search()
 
     with tab_add:
         _render_add_company_form()
 
     with tab_csv:
         _render_csv_import()
-
-    with tab_cb:
-        _render_company_search()
 
 
 def _render_add_company_form():
