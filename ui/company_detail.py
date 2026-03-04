@@ -116,6 +116,58 @@ def render_company_detail():
         with tc2:
             st.metric("Headcount Growth", fmt_pct(company.get("employee_growth_pct")))
 
+        # Edit Financial Metrics (for Crunchbase imports with missing financials)
+        if company.get("source") == "crunchbase" or any(
+            company.get(f) is None for f in ["arr_millions", "revenue_growth_pct", "gross_margin_pct", "net_retention_pct"]
+        ):
+            with st.expander("Edit Financial Metrics"):
+                with st.form(f"edit_financials_{chosen_id}"):
+                    ef1, ef2 = st.columns(2)
+                    with ef1:
+                        new_arr = st.number_input(
+                            "ARR ($M)", min_value=0.0, step=0.1,
+                            value=float(company.get("arr_millions") or 0.0),
+                            key=f"edit_arr_{chosen_id}",
+                        )
+                        new_growth = st.number_input(
+                            "Revenue Growth (%)", min_value=-100.0, step=1.0,
+                            value=float(company.get("revenue_growth_pct") or 0.0),
+                            key=f"edit_growth_{chosen_id}",
+                        )
+                        new_emp_growth = st.number_input(
+                            "Employee Growth (%)", min_value=-100.0, step=1.0,
+                            value=float(company.get("employee_growth_pct") or 0.0),
+                            key=f"edit_emp_growth_{chosen_id}",
+                        )
+                    with ef2:
+                        new_margin = st.number_input(
+                            "Gross Margin (%)", min_value=0.0, max_value=100.0, step=1.0,
+                            value=float(company.get("gross_margin_pct") or 0.0),
+                            key=f"edit_margin_{chosen_id}",
+                        )
+                        new_retention = st.number_input(
+                            "Net Retention (%)", min_value=0.0, step=1.0,
+                            value=float(company.get("net_retention_pct") or 0.0),
+                            key=f"edit_retention_{chosen_id}",
+                        )
+
+                    if st.form_submit_button("Save & Re-score", type="primary"):
+                        updates = {
+                            "arr_millions": new_arr if new_arr else None,
+                            "revenue_growth_pct": new_growth if new_growth else None,
+                            "gross_margin_pct": new_margin if new_margin else None,
+                            "net_retention_pct": new_retention if new_retention else None,
+                            "employee_growth_pct": new_emp_growth if new_emp_growth else None,
+                        }
+                        update_company(chosen_id, updates)
+                        # Re-score with updated financials
+                        updated = get_company(chosen_id)
+                        if updated:
+                            result = score_company(updated)
+                            upsert_score(result)
+                        st.success("Financial metrics updated and company re-scored!")
+                        st.rerun()
+
         # News
         st.subheader("Recent News")
         news = get_news(chosen_id)

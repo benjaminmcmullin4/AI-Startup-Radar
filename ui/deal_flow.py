@@ -6,7 +6,7 @@ import json
 import io
 from db.database import (
     get_companies_with_scores, update_pipeline_stage, insert_company,
-    get_all_theses, get_default_thesis,
+    get_all_theses, get_default_thesis, get_all_companies, get_company,
 )
 from models.company import Company
 from services.scoring_engine import score_company, score_all_companies
@@ -111,14 +111,17 @@ def render_deal_flow():
 
     st.markdown("---")
 
-    # --- Add Company / CSV Import ---
-    tab_add, tab_csv = st.tabs(["Add Company", "CSV Import"])
+    # --- Add Company / CSV Import / Crunchbase ---
+    tab_add, tab_csv, tab_cb = st.tabs(["Add Company", "CSV Import", "Crunchbase Search"])
 
     with tab_add:
         _render_add_company_form()
 
     with tab_csv:
         _render_csv_import()
+
+    with tab_cb:
+        _render_crunchbase_search()
 
 
 def _render_add_company_form():
@@ -200,6 +203,74 @@ def _render_csv_import():
                 st.rerun()
         except Exception as e:
             st.error(f"Error reading CSV: {e}")
+
+
+def _render_crunchbase_search():
+    from services.crunchbase import is_crunchbase_configured, search_organizations
+
+    if not is_crunchbase_configured():
+        st.warning(
+            "Crunchbase API key not configured. Add `CRUNCHBASE_API_KEY` to your "
+            "`.streamlit/secrets.toml` or environment variables to enable real startup search."
+        )
+        return
+
+    st.subheader("Search Crunchbase")
+    query = st.text_input("Company name", key="cb_search_query", placeholder="e.g. Datadog")
+
+    if query:
+        with st.spinner("Searching Crunchbase..."):
+            results = search_organizations(query)
+
+        if not results:
+            st.info("No results found. Try a different search term.")
+            return
+
+        for i, r in enumerate(results):
+            col_info, col_btn = st.columns([4, 1])
+            with col_info:
+                st.markdown(f"**{r['name']}**")
+                if r.get("short_description"):
+                    st.caption(r["short_description"])
+            with col_btn:
+                if st.button("Import", key=f"cb_import_{i}_{r['permalink']}"):
+                    _import_from_crunchbase(r["permalink"])
+
+
+def _import_from_crunchbase(permalink: str):
+    from services.crunchbase import get_organization, map_to_company
+
+    # Check for duplicate by name
+    existing = get_all_companies()
+    with st.spinner("Fetching company details from Crunchbase..."):
+        org_data = get_organization(permalink)
+
+    if not org_data:
+        st.error("Failed to fetch company details from Crunchbase. Please try again.")
+        return
+
+    company = map_to_company(org_data)
+
+    # Duplicate check
+    existing_names = {c["name"].lower() for c in existing}
+    if company.name.lower() in existing_names:
+        st.warning(f"**{company.name}** already exists in your pipeline.")
+        return
+
+    cid = insert_company(company)
+
+    # Auto-score
+    c_data = get_company(cid)
+    if c_data:
+        result = score_company(c_data)
+        upsert_score(result)
+
+    st.success(f"Imported **{company.name}** from Crunchbase!")
+    st.warning(
+        "Financial metrics (ARR, revenue growth, gross margin, net retention) are not "
+        "available from Crunchbase. Edit them on the Company Detail page to improve scoring."
+    )
+    st.rerun()
 
 
 def _companies_to_df(companies: list[dict]) -> pd.DataFrame:

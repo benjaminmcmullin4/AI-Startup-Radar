@@ -48,9 +48,14 @@ with col_user:
             del st.session_state[key]
         st.rerun()
 
-# --- Demo mode banner ---
+# --- Demo mode banner / Crunchbase status ---
 if is_demo_mode():
     st.info("◆ **Demo Mode** — Showing sample portfolio pipeline with rule-based scoring. Configure API keys in Streamlit secrets for AI-powered enrichment.", icon="ℹ️")
+else:
+    from services.crunchbase import is_crunchbase_configured
+    if is_crunchbase_configured():
+        st.success("◆ **Crunchbase connected** — Search and import real startup data from the Deal Flow tab.", icon="✅")
+
 
 # --- Tab routing ---
 tabs = st.tabs(["Dashboard", "Deal Flow", "Company Detail", "Thesis Builder", "Weekly Digest"])
