@@ -43,6 +43,11 @@ def _call_llm(system: str, user: str) -> Optional[str]:
             return resp.choices[0].message.content
     except Exception as e:
         logger.error("LLM call failed: %s", e)
+        try:
+            import streamlit as st
+            st.error(f"AI lookup error: {e}")
+        except Exception:
+            pass
     return None
 
 
