@@ -1,20 +1,63 @@
 """Company Detail tab: full profile, score breakdown, memo, notes, tags."""
 
-import streamlit as st
+from __future__ import annotations
+
 import json
-from db.database import (
+
+import streamlit as st
+
+from db import (
     get_company, get_score, get_notes, get_tags, get_news,
     update_pipeline_stage, add_note, add_tag, remove_tag,
     update_company, get_default_thesis, get_all_companies,
+    upsert_score,
 )
-from ui.components import score_gauge, radar_chart, tier_badge, thesis_fit_bar
-from services.memo_generator import generate_memo
-from services.thesis_matcher import match_thesis
-from services.scoring_engine import score_company
-from db.database import upsert_score
-from config.settings import PIPELINE_STAGES, STAGE_LABELS
-from utils.formatting import fmt_money, fmt_pct, fmt_number
+from schema import Company
+from viz import score_gauge, radar_chart
+from pipeline import generate_memo, match_thesis, score_company
+from config import PIPELINE_STAGES, STAGE_LABELS, COLORS, TIER_COLORS
 
+
+# ── Helpers ────────────────────────────────────────────────────────────────
+
+def _fmt_money(val) -> str:
+    if val is None:
+        return "—"
+    return f"${val:,.1f}M"
+
+
+def _fmt_pct(val) -> str:
+    if val is None:
+        return "—"
+    return f"{val:.0f}%"
+
+
+def _fmt_number(val) -> str:
+    if val is None:
+        return "—"
+    return f"{val:,}"
+
+
+def _tier_badge_html(tier: str) -> str:
+    color = TIER_COLORS.get(tier, "#6b7280")
+    label = tier.upper() if tier else "N/A"
+    return (
+        f'<span style="background-color:{color};color:white;padding:2px 10px;'
+        f'border-radius:12px;font-size:0.85em;font-weight:600">{label}</span>'
+    )
+
+
+def _thesis_fit_bar_html(fit_pct: float) -> str:
+    color = "#22c55e" if fit_pct >= 70 else "#f59e0b" if fit_pct >= 40 else "#ef4444"
+    return (
+        f'<div style="background:#e5e7eb;border-radius:8px;height:24px;width:100%;position:relative">'
+        f'<div style="background:{color};border-radius:8px;height:24px;width:{fit_pct}%;'
+        f'display:flex;align-items:center;justify-content:center;color:white;font-weight:600;font-size:0.8em">'
+        f'{fit_pct:.0f}%</div></div>'
+    )
+
+
+# ── Main renderer ──────────────────────────────────────────────────────────
 
 def render_company_detail():
     # Company selector
@@ -48,13 +91,16 @@ def render_company_detail():
     col_h1, col_h2, col_h3 = st.columns([4, 2, 2])
     with col_h1:
         st.header(company["name"])
-        st.caption(f"{company.get('sector', '—')} · {company.get('hq_location', '—')} · Founded {company.get('founded_year', '—')}")
+        st.caption(
+            f"{company.get('sector', '—')} · {company.get('hq_location', '—')} "
+            f"· Founded {company.get('founded_year', '—')}"
+        )
     with col_h2:
         if score:
             st.plotly_chart(score_gauge(score["composite_score"]), use_container_width=True)
     with col_h3:
         if score:
-            tier_badge(score.get("tier", "pass"))
+            st.markdown(_tier_badge_html(score.get("tier", "pass")), unsafe_allow_html=True)
         # Pipeline stage selector
         current_stage = company.get("pipeline_stage", "new")
         new_stage = st.selectbox(
@@ -81,23 +127,27 @@ def render_company_detail():
         st.subheader("Financial Profile")
         fc1, fc2, fc3, fc4 = st.columns(4)
         with fc1:
-            st.metric("ARR", fmt_money(company.get("arr_millions")))
+            st.metric("ARR", _fmt_money(company.get("arr_millions")))
         with fc2:
-            st.metric("Revenue Growth", fmt_pct(company.get("revenue_growth_pct")))
+            st.metric("Revenue Growth", _fmt_pct(company.get("revenue_growth_pct")))
         with fc3:
-            st.metric("Gross Margin", fmt_pct(company.get("gross_margin_pct")))
+            st.metric("Gross Margin", _fmt_pct(company.get("gross_margin_pct")))
         with fc4:
-            st.metric("Net Retention", fmt_pct(company.get("net_retention_pct")))
+            st.metric("Net Retention", _fmt_pct(company.get("net_retention_pct")))
 
         # Funding
         st.subheader("Funding & Capitalization")
         fu1, fu2, fu3 = st.columns(3)
         with fu1:
-            st.metric("Total Raised", fmt_money(company.get("total_raised_millions")))
+            st.metric("Total Raised", _fmt_money(company.get("total_raised_millions")))
         with fu2:
-            st.metric("Last Round", f"{company.get('last_round_type', '—')} · {fmt_money(company.get('last_round_amount_millions'))}")
+            st.metric(
+                "Last Round",
+                f"{company.get('last_round_type', '—')} · "
+                f"{_fmt_money(company.get('last_round_amount_millions'))}",
+            )
         with fu3:
-            st.metric("Valuation", fmt_money(company.get("last_valuation_millions")))
+            st.metric("Valuation", _fmt_money(company.get("last_valuation_millions")))
 
         investors = company.get("key_investors", [])
         if isinstance(investors, str):
@@ -112,13 +162,14 @@ def render_company_detail():
         st.subheader("Team")
         tc1, tc2 = st.columns(2)
         with tc1:
-            st.metric("Employees", fmt_number(company.get("employee_count")))
+            st.metric("Employees", _fmt_number(company.get("employee_count")))
         with tc2:
-            st.metric("Headcount Growth", fmt_pct(company.get("employee_growth_pct")))
+            st.metric("Headcount Growth", _fmt_pct(company.get("employee_growth_pct")))
 
         # Edit Financial Metrics (for imports with missing financials)
         if company.get("source") in ("ai_lookup", "crunchbase") or any(
-            company.get(f) is None for f in ["arr_millions", "revenue_growth_pct", "gross_margin_pct", "net_retention_pct"]
+            company.get(f) is None
+            for f in ["arr_millions", "revenue_growth_pct", "gross_margin_pct", "net_retention_pct"]
         ):
             with st.expander("Edit Financial Metrics"):
                 with st.form(f"edit_financials_{chosen_id}"):
@@ -173,7 +224,10 @@ def render_company_detail():
         news = get_news(chosen_id)
         if news:
             for n in news[:5]:
-                st.markdown(f"**{n.get('title', '—')}** — _{n.get('source', '')} · {n.get('published_date', '')}_")
+                st.markdown(
+                    f"**{n.get('title', '—')}** — "
+                    f"_{n.get('source', '')} · {n.get('published_date', '')}_"
+                )
                 if n.get("summary"):
                     st.caption(n["summary"])
         else:
@@ -190,7 +244,7 @@ def render_company_detail():
         if thesis:
             fit_result = match_thesis(company, thesis)
             if "fit_pct" in fit_result:
-                thesis_fit_bar(fit_result["fit_pct"])
+                st.markdown(_thesis_fit_bar_html(fit_result["fit_pct"]), unsafe_allow_html=True)
                 st.caption(f"**{fit_result['passed_checks']}/{fit_result['total_checks']}** criteria met")
                 if fit_result.get("matches"):
                     for m in fit_result["matches"]:
@@ -227,7 +281,10 @@ def render_company_detail():
     st.subheader("Investment Memo")
     if company.get("ai_memo"):
         st.markdown(company["ai_memo"])
-        st.download_button("Download Memo", company["ai_memo"], f"memo_{company['name'].replace(' ', '_')}.md", "text/markdown")
+        st.download_button(
+            "Download Memo", company["ai_memo"],
+            f"memo_{company['name'].replace(' ', '_')}.md", "text/markdown",
+        )
     else:
         if st.button("Generate Investment Memo", type="primary"):
             with st.spinner("Generating memo..."):

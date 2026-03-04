@@ -1,94 +1,108 @@
 """Growth Equity Radar — Deal Sourcing & Screening."""
 
-import streamlit as st
-import sys
+from __future__ import annotations
+
+import json
 from pathlib import Path
 
-# Ensure project root is on path
-sys.path.insert(0, str(Path(__file__).parent))
+import streamlit as st
 
-from config.settings import DEMO_MODE
-from utils.demo_mode import load_sample_data, is_demo_mode
-from db.database import init_db
-from services.scoring_engine import score_all_companies
-from services.auth import render_auth_gate
+from config import COLORS, FIRM_NAME, APP_TITLE, APP_SUBTITLE, DEMO_MODE, DATA_DIR
+from db import init_db, get_company_count
 
+# ── Page config ─────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Growth Equity Radar",
+    page_title=FIRM_NAME,
     page_icon="◆",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# --- Authentication Gate ---
+# ── Load custom CSS ────────────────────────────────────────────────────
+css_path = Path(__file__).parent / "styles" / "custom.css"
+if css_path.exists():
+    st.markdown(f"<style>{css_path.read_text()}</style>", unsafe_allow_html=True)
+
+# ── Auth gate ──────────────────────────────────────────────────────────
+from auth import render_auth_gate
+
 if not render_auth_gate():
     st.stop()
 
-# --- Initialize ---
+# ── Initialize DB & demo data ─────────────────────────────────────────
 if "initialized" not in st.session_state:
     init_db()
-    if is_demo_mode():
-        load_sample_data()
+    if DEMO_MODE:
+        from pipeline import score_all_companies
+        _load_demo_data()
         score_all_companies()
     st.session_state["initialized"] = True
 
-# --- Header ---
-col_title, col_user = st.columns([5, 1])
-with col_title:
-    st.title("◆ Growth Equity Radar")
-    st.caption("Deal Sourcing & Screening")
-with col_user:
-    user_email = st.session_state.get("user_email", "")
-    if user_email:
-        st.caption(f"Signed in as **{user_email}**")
-    if st.button("Sign Out", key="signout"):
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.rerun()
 
-# --- Demo mode banner / AI lookup status ---
-if is_demo_mode():
-    st.info("◆ **Demo Mode** — Showing sample pipeline. Configure API keys for AI-powered features.", icon="ℹ️")
-else:
-    from services.company_lookup import is_lookup_available
-    if is_lookup_available():
-        # Check if demo data still lingers
-        from db.database import get_connection
-        _conn = get_connection()
-        _demo_count = _conn.execute("SELECT COUNT(*) FROM companies WHERE source = 'demo_seed'").fetchone()[0]
-        _conn.close()
-        if _demo_count > 0:
-            col_msg, col_btn = st.columns([4, 1])
-            with col_msg:
-                st.success(f"◆ **AI company lookup active** — You have {_demo_count} demo companies. Clear them to start fresh.", icon="✅")
-            with col_btn:
-                if st.button("Clear Demo Data"):
-                    from db.database import delete_companies_by_source
-                    delete_companies_by_source("demo_seed")
-                    st.rerun()
-        else:
-            st.success("◆ **AI company lookup available** — Search and import real startup data from Deal Flow.", icon="✅")
+def _load_demo_data():
+    """Load sample companies and default thesis if DB is empty."""
+    from db import get_company_count, insert_company, insert_thesis, insert_news
+    from schema import Company
+    if get_company_count() > 0:
+        return
+    sample_path = DATA_DIR / "sample_companies.json"
+    if sample_path.exists():
+        companies = json.loads(sample_path.read_text())
+        for c_data in companies:
+            company = Company.model_validate(c_data)
+            insert_company(company)
+    thesis_path = Path(__file__).parent / "examples" / "default_thesis.json"
+    if thesis_path.exists():
+        thesis = json.loads(thesis_path.read_text())
+        insert_thesis(thesis)
+    news_path = DATA_DIR / "sample_news.json"
+    if news_path.exists():
+        news_items = json.loads(news_path.read_text())
+        for item in news_items:
+            insert_news(item)
 
 
-# --- Tab routing ---
+# ── Sidebar ────────────────────────────────────────────────────────────
+from components.sidebar import render_sidebar
+
+filters = render_sidebar()
+
+# ── Header ─────────────────────────────────────────────────────────────
+st.markdown(
+    f'<h1 style="color: {COLORS["navy"]}; margin-bottom: 0;">◆ {FIRM_NAME}</h1>'
+    f'<p style="color: {COLORS["muted"]}; margin-top: 0;">{APP_SUBTITLE}</p>',
+    unsafe_allow_html=True,
+)
+
+# Demo mode banner
+if DEMO_MODE:
+    st.markdown(
+        '<div class="demo-banner">'
+        '◆ <strong>Demo Mode</strong> — Configure API keys for AI-powered features'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+# ── Tabs ───────────────────────────────────────────────────────────────
 tabs = st.tabs(["Dashboard", "Deal Flow", "Company Detail", "Thesis Builder", "Weekly Digest"])
 
+from components.dashboard_tab import render_dashboard
+from components.deal_flow_tab import render_deal_flow
+from components.company_detail_tab import render_company_detail
+from components.thesis_builder_tab import render_thesis_builder
+from components.weekly_digest_tab import render_weekly_digest
+
 with tabs[0]:
-    from ui.dashboard import render_dashboard
     render_dashboard()
 
 with tabs[1]:
-    from ui.deal_flow import render_deal_flow
-    render_deal_flow()
+    render_deal_flow(filters)
 
 with tabs[2]:
-    from ui.company_detail import render_company_detail
     render_company_detail()
 
 with tabs[3]:
-    from ui.thesis_builder import render_thesis_builder
     render_thesis_builder()
 
 with tabs[4]:
-    from ui.weekly_digest import render_weekly_digest
     render_weekly_digest()

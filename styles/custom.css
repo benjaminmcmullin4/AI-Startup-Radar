@@ -1,0 +1,415 @@
+/* ══════════════════════════════════════════════════════════════════════
+   AI Startup Radar – Design System (Light Theme)
+   Matches AI VC Research Agent target styling
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Font Import ─────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* ── Global ──────────────────────────────────────────────────────────── */
+html, body, [class*="st-"] {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.block-container {
+    max-width: 1100px !important;
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+[data-testid="stSidebar"] {
+    background-color: #0A0A0A !important;
+}
+
+[data-testid="stSidebar"] * {
+    color: #FFFFFF !important;
+}
+
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] .stMarkdown h1,
+[data-testid="stSidebar"] .stMarkdown h2,
+[data-testid="stSidebar"] .stMarkdown h3,
+[data-testid="stSidebar"] .stMarkdown li,
+[data-testid="stSidebar"] .stMarkdown span,
+[data-testid="stSidebar"] label {
+    color: #FFFFFF !important;
+}
+
+[data-testid="stSidebar"] .stSelectbox label,
+[data-testid="stSidebar"] .stMultiSelect label,
+[data-testid="stSidebar"] .stSlider label,
+[data-testid="stSidebar"] .stRadio label {
+    color: #FFFFFF !important;
+}
+
+[data-testid="stSidebar"] hr {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* ── Metric Cards ────────────────────────────────────────────────────── */
+[data-testid="stMetric"] {
+    background-color: #FFFFFF;
+    border: 1px solid #ECF0F1;
+    border-radius: 8px;
+    padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+[data-testid="stMetric"] label {
+    color: #777777 !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+}
+
+[data-testid="stMetric"] [data-testid="stMetricValue"] {
+    color: #1A1A1A !important;
+    font-weight: 700 !important;
+    font-size: 1.6rem !important;
+}
+
+[data-testid="stMetric"] [data-testid="stMetricDelta"] {
+    font-size: 0.8rem !important;
+}
+
+/* ── KPI Card (replaces dark #1a1a2e) ────────────────────────────────── */
+.kpi-card {
+    background: #FFFFFF;
+    border: 1px solid #ECF0F1;
+    border-radius: 10px;
+    padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    text-align: center;
+}
+
+.kpi-card .kpi-label {
+    color: #777777;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.kpi-card .kpi-value {
+    color: #1A1A1A;
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.kpi-card .kpi-delta {
+    color: #1ABC9C;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-top: 4px;
+}
+
+/* ── Section Headers ─────────────────────────────────────────────────── */
+.section-header {
+    color: #0A0A0A !important;
+    font-weight: 700 !important;
+    font-size: 1.3rem !important;
+    margin-bottom: 4px !important;
+    padding-bottom: 8px !important;
+    border-bottom: 3px solid #1ABC9C !important;
+    display: inline-block;
+}
+
+h1, h2, h3 {
+    color: #0A0A0A !important;
+}
+
+h2 {
+    border-bottom: 3px solid #1ABC9C;
+    padding-bottom: 6px;
+    display: inline-block;
+}
+
+/* ── Severity Badges ─────────────────────────────────────────────────── */
+.severity-1, .severity-2 {
+    background-color: #1ABC9C;
+    color: #FFFFFF;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.severity-3 {
+    background-color: #D4A338;
+    color: #FFFFFF;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.severity-4 {
+    background-color: #E67E22;
+    color: #FFFFFF;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.severity-5 {
+    background-color: #E74C3C;
+    color: #FFFFFF;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+/* ── Tier Badges ─────────────────────────────────────────────────────── */
+.tier-hot {
+    background-color: #E74C3C;
+    color: #FFFFFF;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tier-warm {
+    background-color: #D4A338;
+    color: #FFFFFF;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tier-monitor {
+    background-color: #1ABC9C;
+    color: #FFFFFF;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.tier-pass {
+    background-color: #777777;
+    color: #FFFFFF;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ── Demo Banner ─────────────────────────────────────────────────────── */
+.demo-banner {
+    background: linear-gradient(135deg, #0A0A0A 0%, #333333 100%);
+    color: #FFFFFF;
+    padding: 14px 24px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    letter-spacing: 0.02em;
+}
+
+.demo-banner a {
+    color: #1ABC9C !important;
+    text-decoration: underline;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.stButton > button {
+    background-color: #0A0A0A !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 20px !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.02em !important;
+    transition: background-color 0.2s ease, transform 0.1s ease !important;
+}
+
+.stButton > button:hover {
+    background-color: #1ABC9C !important;
+    color: #FFFFFF !important;
+    transform: translateY(-1px) !important;
+}
+
+.stButton > button:active {
+    transform: translateY(0) !important;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────── */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 0px;
+    border-bottom: 2px solid #ECF0F1;
+}
+
+.stTabs [data-baseweb="tab"] {
+    color: #777777 !important;
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    padding: 10px 20px !important;
+    border-bottom: 3px solid transparent !important;
+    background-color: transparent !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: #1A1A1A !important;
+}
+
+.stTabs [aria-selected="true"] {
+    color: #1ABC9C !important;
+    border-bottom: 3px solid #1ABC9C !important;
+    font-weight: 600 !important;
+}
+
+/* ── Tables ──────────────────────────────────────────────────────────── */
+.stDataFrame thead tr {
+    background-color: #0A0A0A !important;
+}
+
+.stDataFrame thead th {
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    font-size: 0.78rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    padding: 10px 14px !important;
+}
+
+.stDataFrame tbody tr:nth-child(even) {
+    background-color: #F8F9FA;
+}
+
+.stDataFrame tbody tr:hover {
+    background-color: #F0F4F8;
+}
+
+.stDataFrame tbody td {
+    font-size: 0.85rem !important;
+    padding: 8px 14px !important;
+    color: #1A1A1A !important;
+}
+
+/* ── Citations ────────────────────────────────────────────────────────── */
+.citation {
+    display: inline-block;
+    background-color: #F0F4F8;
+    color: #1ABC9C;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-left: 3px;
+    vertical-align: super;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.citation:hover {
+    background-color: #1ABC9C;
+    color: #FFFFFF;
+}
+
+.source-item {
+    background-color: #F8F9FA;
+    border-left: 3px solid #1ABC9C;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.82rem;
+}
+
+.source-item a {
+    color: #1ABC9C !important;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.source-item a:hover {
+    text-decoration: underline;
+}
+
+/* ── Expanders ───────────────────────────────────────────────────────── */
+.streamlit-expanderHeader {
+    font-weight: 600 !important;
+    font-size: 0.92rem !important;
+    color: #0A0A0A !important;
+    background-color: #F8F9FA !important;
+    border-radius: 6px !important;
+}
+
+.streamlit-expanderContent {
+    border: 1px solid #ECF0F1 !important;
+    border-top: none !important;
+    border-radius: 0 0 6px 6px !important;
+    padding: 14px !important;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #F0F4F8;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #C0C0C0;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #999999;
+}
+
+/* ── Dividers ────────────────────────────────────────────────────────── */
+hr {
+    border: none !important;
+    border-top: 1px solid #ECF0F1 !important;
+    margin: 20px 0 !important;
+}
+
+/* ── Toast / Alert ───────────────────────────────────────────────────── */
+.stAlert {
+    border-radius: 8px !important;
+    font-size: 0.88rem !important;
+}
+
+/* ── Select / Input ──────────────────────────────────────────────────── */
+.stSelectbox [data-baseweb="select"],
+.stMultiSelect [data-baseweb="select"],
+.stTextInput input,
+.stTextArea textarea {
+    border-color: #ECF0F1 !important;
+    border-radius: 6px !important;
+    font-size: 0.88rem !important;
+}
+
+.stSelectbox [data-baseweb="select"]:focus-within,
+.stMultiSelect [data-baseweb="select"]:focus-within,
+.stTextInput input:focus,
+.stTextArea textarea:focus {
+    border-color: #1ABC9C !important;
+    box-shadow: 0 0 0 1px #1ABC9C !important;
+}
+
+/* ── Progress Bar ────────────────────────────────────────────────────── */
+.stProgress > div > div > div {
+    background-color: #1ABC9C !important;
+}

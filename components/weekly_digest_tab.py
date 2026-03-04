@@ -1,13 +1,18 @@
 """Weekly Digest tab: date range selector, digest generation, export."""
 
+from __future__ import annotations
+
 import streamlit as st
 from datetime import datetime, timedelta
-from services.digest_generator import generate_digest
+
+from news import generate_digest
 
 
 def render_weekly_digest():
     st.subheader("Weekly Deal Flow Digest")
-    st.caption("Generate a summary of pipeline activity, hot deals, and thesis match highlights.")
+    st.caption(
+        "Generate a summary of pipeline activity, hot deals, and thesis match highlights."
+    )
 
     col1, col2 = st.columns(2)
     with col1:

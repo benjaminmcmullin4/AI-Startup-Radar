@@ -1,10 +1,119 @@
-import sqlite3
-import json
-from pathlib import Path
-from typing import Optional
-from config.settings import DB_PATH
-from models.company import Company
+"""SQLite database layer for startup pipeline management."""
 
+from __future__ import annotations
+
+import json
+import sqlite3
+from typing import Optional
+
+from config import DB_PATH
+from schema import Company
+
+
+# ── Inlined DDL Schema ─────────────────────────────────────────────────
+_SCHEMA_SQL = """\
+CREATE TABLE IF NOT EXISTS companies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    domain TEXT,
+    description TEXT,
+    sector TEXT,
+    sub_sector TEXT,
+    hq_location TEXT,
+    founded_year INTEGER,
+    employee_count INTEGER,
+    employee_growth_pct REAL,
+    arr_millions REAL,
+    revenue_growth_pct REAL,
+    gross_margin_pct REAL,
+    net_retention_pct REAL,
+    total_raised_millions REAL,
+    last_round_type TEXT,
+    last_round_amount_millions REAL,
+    last_round_date TEXT,
+    last_valuation_millions REAL,
+    key_investors TEXT,  -- JSON array
+    pipeline_stage TEXT DEFAULT 'new',
+    ai_summary TEXT,
+    ai_memo TEXT,
+    source TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS scores (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL,
+    thesis_id INTEGER,
+    team_score REAL,
+    financial_score REAL,
+    market_score REAL,
+    product_score REAL,
+    momentum_score REAL,
+    composite_score REAL,
+    tier TEXT,
+    score_breakdown_json TEXT,
+    scored_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(id),
+    FOREIGN KEY (thesis_id) REFERENCES theses(id)
+);
+
+CREATE TABLE IF NOT EXISTS theses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    description TEXT,
+    weight_team REAL DEFAULT 0.25,
+    weight_financial REAL DEFAULT 0.25,
+    weight_market REAL DEFAULT 0.20,
+    weight_product REAL DEFAULT 0.15,
+    weight_momentum REAL DEFAULT 0.15,
+    criteria_json TEXT,  -- JSON: ARR range, growth thresholds, sectors, geos, round types
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS notes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+    author TEXT DEFAULT 'analyst',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(id)
+);
+
+CREATE TABLE IF NOT EXISTS company_tags (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER NOT NULL,
+    tag TEXT NOT NULL,
+    FOREIGN KEY (company_id) REFERENCES companies(id),
+    UNIQUE(company_id, tag)
+);
+
+CREATE TABLE IF NOT EXISTS news_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER,
+    title TEXT NOT NULL,
+    url TEXT,
+    source TEXT,
+    published_date TEXT,
+    summary TEXT,
+    category TEXT,  -- funding, product, hiring, partnership
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(id)
+);
+
+CREATE TABLE IF NOT EXISTS activity_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id INTEGER,
+    action TEXT NOT NULL,  -- scored, stage_changed, note_added, memo_generated, imported
+    details TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (company_id) REFERENCES companies(id)
+);
+"""
+
+
+# ── Connection ─────────────────────────────────────────────────────────
 
 def get_connection() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -17,13 +126,12 @@ def get_connection() -> sqlite3.Connection:
 
 def init_db():
     conn = get_connection()
-    schema_path = Path(__file__).parent / "schema.sql"
-    conn.executescript(schema_path.read_text())
+    conn.executescript(_SCHEMA_SQL)
     conn.commit()
     conn.close()
 
 
-# --- Company CRUD ---
+# ── Company CRUD ───────────────────────────────────────────────────────
 
 def insert_company(company: Company) -> int:
     conn = get_connection()
@@ -93,7 +201,7 @@ def delete_companies_by_source(source: str) -> int:
     return len(company_ids)
 
 
-# --- Scores CRUD ---
+# ── Scores CRUD ────────────────────────────────────────────────────────
 
 def upsert_score(score_data: dict):
     conn = get_connection()
@@ -142,7 +250,7 @@ def get_all_scores() -> list[dict]:
     return [dict(r) for r in rows]
 
 
-# --- Theses CRUD ---
+# ── Theses CRUD ────────────────────────────────────────────────────────
 
 def insert_thesis(thesis_data: dict) -> int:
     conn = get_connection()
@@ -185,7 +293,7 @@ def get_default_thesis() -> Optional[dict]:
     return dict(row) if row else None
 
 
-# --- Notes ---
+# ── Notes ──────────────────────────────────────────────────────────────
 
 def add_note(company_id: int, content: str, author: str = "analyst"):
     conn = get_connection()
@@ -202,7 +310,7 @@ def get_notes(company_id: int) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-# --- Tags ---
+# ── Tags ───────────────────────────────────────────────────────────────
 
 def add_tag(company_id: int, tag: str):
     conn = get_connection()
@@ -228,7 +336,7 @@ def get_tags(company_id: int) -> list[str]:
     return [r["tag"] for r in rows]
 
 
-# --- News ---
+# ── News ───────────────────────────────────────────────────────────────
 
 def insert_news(news_data: dict) -> int:
     conn = get_connection()
@@ -254,7 +362,7 @@ def get_news(company_id: Optional[int] = None, limit: int = 50) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-# --- Activity Log ---
+# ── Activity Log ───────────────────────────────────────────────────────
 
 def log_activity(company_id: Optional[int], action: str, details: str = ""):
     try:
@@ -280,7 +388,7 @@ def get_activity_log(limit: int = 50) -> list[dict]:
     return [dict(r) for r in rows]
 
 
-# --- Companies with scores join ---
+# ── Companies with scores join ─────────────────────────────────────────
 
 def get_companies_with_scores() -> list[dict]:
     conn = get_connection()

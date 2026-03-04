@@ -1,10 +1,15 @@
 """Email-based one-time code authentication for Growth Equity Radar."""
 
+from __future__ import annotations
+
 import random
 import string
 import time
+
 import resend
 import streamlit as st
+
+from config import COLORS, FIRM_NAME
 
 
 OTP_EXPIRY_SECONDS = 600  # 10 minutes
@@ -41,19 +46,19 @@ def send_otp_email(to_email: str, otp: str) -> bool:
         resend.Emails.send({
             "from": from_email,
             "to": [to_email],
-            "subject": "Growth Equity Radar — Access Code",
+            "subject": f"{FIRM_NAME} — Access Code",
             "html": f"""
         <html>
-        <body style="font-family: -apple-system, sans-serif; background: #f8f9fa; padding: 40px;">
-            <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-                <h2 style="color: #1a1a2e; margin-bottom: 8px;">Growth Equity Radar</h2>
-                <p style="color: #6b7280; margin-bottom: 24px;">Your one-time access code:</p>
-                <div style="background: #1a1a2e; color: white; font-size: 32px; font-weight: 700; letter-spacing: 8px; text-align: center; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
+        <body style="font-family: 'Inter', -apple-system, sans-serif; background: {COLORS['bg']}; padding: 40px;">
+            <div style="max-width: 480px; margin: 0 auto; background: {COLORS['white']}; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <h2 style="color: {COLORS['navy']}; margin-bottom: 8px;">{FIRM_NAME}</h2>
+                <p style="color: {COLORS['muted']}; margin-bottom: 24px;">Your one-time access code:</p>
+                <div style="background: {COLORS['navy']}; color: white; font-size: 32px; font-weight: 700; letter-spacing: 8px; text-align: center; padding: 20px; border-radius: 8px; margin-bottom: 24px;">
                     {otp}
                 </div>
-                <p style="color: #6b7280; font-size: 14px;">This code expires in 10 minutes. Do not share it.</p>
-                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;">
-                <p style="color: #9ca3af; font-size: 12px;">Growth Equity Radar</p>
+                <p style="color: {COLORS['muted']}; font-size: 14px;">This code expires in 10 minutes. Do not share it.</p>
+                <hr style="border: none; border-top: 1px solid {COLORS['light_gray']}; margin: 24px 0;">
+                <p style="color: {COLORS['muted']}; font-size: 12px;">{FIRM_NAME}</p>
             </div>
         </body>
         </html>
@@ -81,20 +86,21 @@ def render_auth_gate() -> bool:
     if st.session_state.get("authenticated"):
         return True
 
-    # Center the login form
-    st.markdown("""
+    # Light-theme auth styles: navy text, teal accent
+    st.markdown(f"""
     <style>
-        [data-testid="stSidebar"] { display: none; }
-        .auth-header { text-align: center; padding: 40px 0 20px; }
-        .auth-header h1 { color: #fafafa; font-size: 2.2em; font-weight: 700; margin-bottom: 4px; }
-        .auth-header p { color: #9ca3af; font-size: 1.05em; }
-        .auth-subtext { color: #6b7280; font-size: 0.85em; text-align: center; }
+        [data-testid="stSidebar"] {{ display: none; }}
+        .auth-header {{ text-align: center; padding: 40px 0 20px; }}
+        .auth-header h1 {{ color: {COLORS['navy']}; font-size: 2.2em; font-weight: 700; margin-bottom: 4px; }}
+        .auth-header .accent {{ color: {COLORS['teal']}; }}
+        .auth-header p {{ color: {COLORS['muted']}; font-size: 1.05em; }}
+        .auth-subtext {{ color: {COLORS['muted']}; font-size: 0.85em; text-align: center; }}
     </style>
     """, unsafe_allow_html=True)
 
-    st.markdown("""
+    st.markdown(f"""
     <div class="auth-header">
-        <h1>Growth Equity Radar</h1>
+        <h1>{FIRM_NAME}</h1>
         <p>Growth Equity Deal Sourcing & Screening</p>
     </div>
     """, unsafe_allow_html=True)
@@ -128,7 +134,7 @@ def render_auth_gate() -> bool:
                 if send_otp_email(email, otp):
                     st.session_state["otp_sent"] = True
                     if not _get_resend_key():
-                        # Dev/demo mode — show code directly
+                        # Dev/demo mode -- show code directly
                         st.session_state["otp_show_fallback"] = True
                     st.rerun()
 
@@ -170,8 +176,8 @@ def render_auth_gate() -> bool:
 
     st.markdown("---")
     st.markdown(
-        '<p style="text-align:center;color:#4b5563;font-size:0.8em;">'
-        'Growth Equity Radar &mdash; Deal Sourcing & Screening</p>',
+        f'<p style="text-align:center;color:{COLORS["muted"]};font-size:0.8em;">'
+        f'{FIRM_NAME} &mdash; Deal Sourcing & Screening</p>',
         unsafe_allow_html=True,
     )
     return False

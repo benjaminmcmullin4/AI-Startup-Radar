@@ -1,24 +1,77 @@
 """Deal Flow tab: filterable company table, CSV import, add company, bulk actions."""
 
-import streamlit as st
-import pandas as pd
+from __future__ import annotations
+
 import json
 import io
-from db.database import (
+
+import streamlit as st
+import pandas as pd
+
+from db import (
     get_companies_with_scores, update_pipeline_stage, insert_company,
     get_all_theses, get_default_thesis, get_all_companies, get_company,
+    upsert_score,
 )
-from models.company import Company
-from services.scoring_engine import score_company, score_all_companies
-from db.database import upsert_score
-from config.settings import PIPELINE_STAGES, STAGE_LABELS
-from utils.formatting import fmt_money
-from utils.validators import validate_company_data
+from schema import Company
+from pipeline import (
+    score_company, score_all_companies, is_lookup_available,
+    search_companies, get_company_details, map_to_company,
+)
+from config import PIPELINE_STAGES, STAGE_LABELS, COLORS
 
 
-def render_deal_flow():
+# ── Helpers ────────────────────────────────────────────────────────────────
+
+def _fmt_money(val) -> str:
+    if val is None:
+        return "—"
+    return f"${val:,.1f}M"
+
+
+def _apply_filters(companies: list[dict], filters: dict) -> list[dict]:
+    """Apply sidebar filter dict to company list."""
+    filtered = list(companies)
+
+    tier_filter = filters.get("tier", [])
+    stage_filter = filters.get("stage", [])
+    sector_filter = filters.get("sector", [])
+    arr_range = filters.get("arr_range", (0.0, 200.0))
+    growth_range = filters.get("growth_range", (0, 300))
+    search = filters.get("search", "")
+
+    if tier_filter:
+        filtered = [c for c in filtered if c.get("tier") in tier_filter]
+    if stage_filter:
+        filtered = [c for c in filtered if c.get("pipeline_stage") in stage_filter]
+    if sector_filter:
+        filtered = [c for c in filtered if c.get("sector") in sector_filter]
+
+    filtered = [
+        c for c in filtered
+        if arr_range[0] <= (c.get("arr_millions") or 0) <= arr_range[1]
+    ]
+    filtered = [
+        c for c in filtered
+        if growth_range[0] <= (c.get("revenue_growth_pct") or 0) <= growth_range[1]
+    ]
+
+    if search:
+        search_lower = search.lower()
+        filtered = [
+            c for c in filtered
+            if search_lower in (c.get("name") or "").lower()
+            or search_lower in (c.get("description") or "").lower()
+            or search_lower in (c.get("sector") or "").lower()
+        ]
+
+    return filtered
+
+
+# ── Main renderer ──────────────────────────────────────────────────────────
+
+def render_deal_flow(filters: dict):
     # --- Company Search (hero section) ---
-    from services.company_lookup import is_lookup_available
     if is_lookup_available():
         st.subheader("Find & Import Companies")
         _render_company_search()
@@ -32,39 +85,7 @@ def render_deal_flow():
         st.markdown("---")
 
     companies = get_companies_with_scores()
-
-    # --- Sidebar filters ---
-    with st.sidebar:
-        st.header("Filters")
-
-        tier_filter = st.multiselect("Tier", ["hot", "warm", "monitor", "pass"], default=[])
-        stage_filter = st.multiselect("Pipeline Stage",
-                                       PIPELINE_STAGES,
-                                       format_func=lambda x: STAGE_LABELS.get(x, x),
-                                       default=[])
-        sectors = sorted(set(c.get("sector", "") for c in companies if c.get("sector")))
-        sector_filter = st.multiselect("Sector", sectors, default=[])
-
-        arr_range = st.slider("ARR Range ($M)", 0.0, 200.0, (0.0, 200.0), step=1.0)
-        growth_range = st.slider("Revenue Growth (%)", 0, 300, (0, 300), step=5)
-
-        search = st.text_input("Search companies", "")
-
-    # Apply filters
-    filtered = companies
-    if tier_filter:
-        filtered = [c for c in filtered if c.get("tier") in tier_filter]
-    if stage_filter:
-        filtered = [c for c in filtered if c.get("pipeline_stage") in stage_filter]
-    if sector_filter:
-        filtered = [c for c in filtered if c.get("sector") in sector_filter]
-    filtered = [c for c in filtered if arr_range[0] <= (c.get("arr_millions") or 0) <= arr_range[1]]
-    filtered = [c for c in filtered if growth_range[0] <= (c.get("revenue_growth_pct") or 0) <= growth_range[1]]
-    if search:
-        search_lower = search.lower()
-        filtered = [c for c in filtered if search_lower in (c.get("name") or "").lower()
-                    or search_lower in (c.get("description") or "").lower()
-                    or search_lower in (c.get("sector") or "").lower()]
+    filtered = _apply_filters(companies, filters)
 
     # --- Bulk actions ---
     col1, col2, col3 = st.columns([1, 1, 2])
@@ -85,7 +106,9 @@ def render_deal_flow():
     # --- Company table ---
     if filtered:
         for c in filtered:
-            col_name, col_sector, col_arr, col_growth, col_score, col_stage = st.columns([3, 2, 1.5, 1.5, 1, 2])
+            col_name, col_sector, col_arr, col_growth, col_score, col_stage = st.columns(
+                [3, 2, 1.5, 1.5, 1, 2]
+            )
 
             with col_name:
                 if st.button(c["name"], key=f"company_{c['id']}"):
@@ -135,6 +158,8 @@ def render_deal_flow():
         _render_csv_import()
 
 
+# ── Sub-components ─────────────────────────────────────────────────────────
+
 def _render_add_company_form():
     with st.form("add_company"):
         st.subheader("Add New Company")
@@ -159,7 +184,10 @@ def _render_add_company_form():
             net_retention_pct = st.number_input("Net Retention (%)", min_value=0.0, step=1.0, value=100.0)
             employee_count = st.number_input("Employee Count", min_value=0, step=1, value=0)
             employee_growth_pct = st.number_input("Employee Growth (%)", min_value=-100.0, step=1.0, value=0.0)
-            last_round_type = st.selectbox("Last Round Type", ["", "Seed", "Series A", "Series B", "Series C", "Series D", "Growth"])
+            last_round_type = st.selectbox(
+                "Last Round Type",
+                ["", "Seed", "Series A", "Series B", "Series C", "Series D", "Growth"],
+            )
             last_round_amount = st.number_input("Last Round Amount ($M)", min_value=0.0, step=0.1, value=0.0)
 
         submitted = st.form_submit_button("Add Company", type="primary")
@@ -176,7 +204,6 @@ def _render_add_company_form():
             )
             cid = insert_company(company)
             # Auto-score
-            from db.database import get_company
             c_data = get_company(cid)
             if c_data:
                 result = score_company(c_data)
@@ -203,8 +230,10 @@ def _render_csv_import():
                             data["key_investors"] = json.loads(data["key_investors"])
                         except (json.JSONDecodeError, TypeError):
                             data["key_investors"] = []
-                    company = Company(**{k: v for k, v in data.items()
-                                        if k in Company.__dataclass_fields__ and pd.notna(v)})
+                    company = Company(**{
+                        k: v for k, v in data.items()
+                        if k in Company.model_fields and pd.notna(v)
+                    })
                     cid = insert_company(company)
                     c_data = {"id": cid, **data}
                     result = score_company(c_data)
@@ -217,8 +246,6 @@ def _render_csv_import():
 
 
 def _render_company_search():
-    from services.company_lookup import search_companies
-
     query = st.text_input("Company name", key="cb_search_query", placeholder="e.g. Datadog")
 
     if query:
@@ -241,8 +268,6 @@ def _render_company_search():
 
 
 def _import_company(company_name: str):
-    from services.company_lookup import get_company_details, map_to_company
-
     # Check for duplicate by name
     existing = get_all_companies()
     with st.spinner("Looking up company details..."):
