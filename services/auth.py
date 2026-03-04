@@ -3,9 +3,7 @@
 import random
 import string
 import time
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 import streamlit as st
 
 
@@ -17,35 +15,31 @@ def _generate_otp() -> str:
     return "".join(random.choices(string.digits, k=OTP_LENGTH))
 
 
-def _get_email_config() -> dict:
-    """Get SMTP config from Streamlit secrets."""
+def _get_resend_key() -> str:
+    """Get Resend API key from Streamlit secrets."""
     try:
-        return {
-            "smtp_server": st.secrets.get("SMTP_SERVER", "smtp.gmail.com"),
-            "smtp_port": int(st.secrets.get("SMTP_PORT", 587)),
-            "smtp_user": st.secrets.get("SMTP_USER", ""),
-            "smtp_password": st.secrets.get("SMTP_PASSWORD", ""),
-            "from_email": st.secrets.get("FROM_EMAIL", ""),
-        }
+        return st.secrets.get("RESEND_API_KEY", "")
     except Exception:
-        return {}
+        return ""
 
 
 def send_otp_email(to_email: str, otp: str) -> bool:
-    """Send OTP code via email. Returns True if sent successfully."""
-    config = _get_email_config()
+    """Send OTP code via email using Resend. Returns True if sent successfully."""
+    api_key = _get_resend_key()
 
-    if not config.get("smtp_user"):
+    if not api_key:
         # Fallback: store OTP in session and show it (for demo/dev)
         return True
 
     try:
-        msg = MIMEMultipart()
-        msg["From"] = config.get("from_email", config["smtp_user"])
-        msg["To"] = to_email
-        msg["Subject"] = "Mercato Traverse Radar — Access Code"
+        resend.api_key = api_key
+        from_email = st.secrets.get("FROM_EMAIL", "onboarding@resend.dev")
 
-        body = f"""
+        resend.Emails.send({
+            "from": from_email,
+            "to": [to_email],
+            "subject": "Mercato Traverse Radar — Access Code",
+            "html": f"""
         <html>
         <body style="font-family: -apple-system, sans-serif; background: #f8f9fa; padding: 40px;">
             <div style="max-width: 480px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
@@ -60,13 +54,8 @@ def send_otp_email(to_email: str, otp: str) -> bool:
             </div>
         </body>
         </html>
-        """
-        msg.attach(MIMEText(body, "html"))
-
-        with smtplib.SMTP(config["smtp_server"], config["smtp_port"]) as server:
-            server.starttls()
-            server.login(config["smtp_user"], config["smtp_password"])
-            server.send_message(msg)
+            """,
+        })
         return True
     except Exception as e:
         st.error(f"Failed to send email: {e}")
@@ -135,8 +124,7 @@ def render_auth_gate() -> bool:
 
                 if send_otp_email(email, otp):
                     st.session_state["otp_sent"] = True
-                    config = _get_email_config()
-                    if not config.get("smtp_user"):
+                    if not _get_resend_key():
                         # Dev/demo mode — show code directly
                         st.session_state["otp_show_fallback"] = True
                     st.rerun()
@@ -148,7 +136,7 @@ def render_auth_gate() -> bool:
             st.markdown(f"##### Enter the 6-digit code sent to **{st.session_state.get('otp_email', '')}**")
 
             if st.session_state.get("otp_show_fallback"):
-                st.info(f"**Dev Mode** — SMTP not configured. Your code: `{st.session_state.get('otp_code', '')}`")
+                st.info(f"**Dev Mode** — Resend not configured. Your code: `{st.session_state.get('otp_code', '')}`")
 
             code_input = st.text_input("Access code", max_chars=6, placeholder="000000", label_visibility="collapsed")
 
