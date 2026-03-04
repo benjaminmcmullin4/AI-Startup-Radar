@@ -19,6 +19,7 @@ def get_api_key(key_name: str) -> str:
 
 OPENAI_API_KEY = get_api_key("OPENAI_API_KEY")
 ANTHROPIC_API_KEY = get_api_key("ANTHROPIC_API_KEY")
+TAVILY_API_KEY = get_api_key("TAVILY_API_KEY")
 
 DEMO_MODE = not (OPENAI_API_KEY or ANTHROPIC_API_KEY)
 

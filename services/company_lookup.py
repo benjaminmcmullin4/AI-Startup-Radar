@@ -5,7 +5,7 @@ import logging
 import re
 from typing import Optional
 
-from config.settings import OPENAI_API_KEY, ANTHROPIC_API_KEY
+from config.settings import OPENAI_API_KEY, ANTHROPIC_API_KEY, TAVILY_API_KEY
 from models.company import Company
 
 logger = logging.getLogger(__name__)
@@ -60,6 +60,23 @@ def _parse_json(text: str):
         return None
 
 
+def _tavily_search(query: str, max_results: int = 5) -> Optional[list[dict]]:
+    """Search the web via Tavily. Returns list of result dicts or None on failure."""
+    if not TAVILY_API_KEY:
+        return None
+    try:
+        from tavily import TavilyClient
+        client = TavilyClient(api_key=TAVILY_API_KEY)
+        response = client.search(query=query, max_results=max_results)
+        results = response.get("results", [])
+        if not results:
+            return None
+        return [{"title": r.get("title", ""), "url": r.get("url", ""), "content": r.get("content", "")} for r in results]
+    except Exception as e:
+        logger.warning("Tavily search failed: %s", e)
+        return None
+
+
 SYSTEM_PROMPT = (
     "You are a startup research assistant. Return ONLY valid JSON, no markdown fences, "
     "no commentary. Use null for unknown values. Do not fabricate financial figures — "
@@ -75,12 +92,27 @@ def search_companies(query: str) -> list[dict]:
     if not is_lookup_available():
         return []
 
-    user_prompt = (
-        f"List up to 5 real technology/software companies matching '{query}'. "
-        f"Return a JSON array where each element has: "
-        f'"name" (string), "permalink" (slugified lowercase name, e.g. "datadog"), '
-        f'"short_description" (one sentence).'
-    )
+    web_results = _tavily_search(f"{query} startup company", max_results=5)
+
+    if web_results:
+        snippets = "\n\n".join(
+            f"- {r['title']} ({r['url']}): {r['content'][:300]}"
+            for r in web_results
+        )
+        user_prompt = (
+            f"Based on these web search results, identify up to 5 companies related to '{query}'.\n\n"
+            f"Web results:\n{snippets}\n\n"
+            f"Return a JSON array where each element has: "
+            f'"name" (string), "permalink" (slugified lowercase name, e.g. "datadog"), '
+            f'"short_description" (one sentence).'
+        )
+    else:
+        user_prompt = (
+            f"List up to 5 real technology/software companies matching '{query}'. "
+            f"Return a JSON array where each element has: "
+            f'"name" (string), "permalink" (slugified lowercase name, e.g. "datadog"), '
+            f'"short_description" (one sentence).'
+        )
 
     result = _call_llm(SYSTEM_PROMPT, user_prompt)
     parsed = _parse_json(result)
@@ -98,6 +130,22 @@ def get_company_details(company_name: str) -> Optional[dict]:
     if not is_lookup_available() or not company_name:
         return None
 
+    # Try Tavily web searches for real-time data
+    overview_results = _tavily_search(f"{company_name} company overview funding employees", max_results=5)
+    funding_results = _tavily_search(f"{company_name} funding round valuation investors", max_results=3)
+
+    web_context = ""
+    all_results = (overview_results or []) + (funding_results or [])
+    if all_results:
+        snippets = "\n\n".join(
+            f"- {r['title']} ({r['url']}): {r['content'][:400]}"
+            for r in all_results
+        )
+        web_context = (
+            f"\n\nUse these web results as your primary source. Use null for fields not found in the results.\n\n"
+            f"Web results:\n{snippets}"
+        )
+
     user_prompt = (
         f"Provide factual details about the company '{company_name}'. "
         f"Return a JSON object with these fields: "
@@ -111,6 +159,7 @@ def get_company_details(company_name: str) -> Optional[dict]:
         f'"last_round_amount_millions" (number or null), "last_round_date" (YYYY-MM-DD or null), '
         f'"valuation_millions" (number or null), "key_investors" (array of strings, up to 5). '
         f"Use null for any value you are not confident about."
+        f"{web_context}"
     )
 
     result = _call_llm(SYSTEM_PROMPT, user_prompt)
