@@ -116,8 +116,8 @@ def render_company_detail():
         with tc2:
             st.metric("Headcount Growth", fmt_pct(company.get("employee_growth_pct")))
 
-        # Edit Financial Metrics (for Crunchbase imports with missing financials)
-        if company.get("source") == "crunchbase" or any(
+        # Edit Financial Metrics (for imports with missing financials)
+        if company.get("source") in ("ai_lookup", "crunchbase") or any(
             company.get(f) is None for f in ["arr_millions", "revenue_growth_pct", "gross_margin_pct", "net_retention_pct"]
         ):
             with st.expander("Edit Financial Metrics"):
